@@ -14,8 +14,8 @@ import (
 )
 
 type TitularContrato struct {
-	TitularId int
-	Imagem    string
+	Codigo string
+	Imagem string
 }
 
 func dsn() string {
@@ -35,7 +35,7 @@ func dbConn() (db *sql.DB) {
 	return db
 }
 
-func pegarTodosTitularContrato() (titularContrato []TitularContrato) {
+func pegarDados() (titularContrato []TitularContrato) {
 	db := dbConn()
 	defer db.Close()
 
@@ -45,13 +45,13 @@ func pegarTodosTitularContrato() (titularContrato []TitularContrato) {
 	}
 
 	for rows.Next() {
-		var titularId int
+		var codigo string
 		var imagem string
-		err = rows.Scan(&titularId, &imagem)
+		err = rows.Scan(&codigo, &imagem)
 		if err != nil {
 			panic(err.Error())
 		}
-		titularContrato = append(titularContrato, TitularContrato{titularId, imagem})
+		titularContrato = append(titularContrato, TitularContrato{codigo, imagem})
 	}
 	return titularContrato
 }
@@ -63,9 +63,9 @@ func carregarEnv() {
 	}
 }
 
-func copiarArquivo(nomeArquivo string) {
+func copiarArquivo(nomeArquivo string, nomeDestino string) {
 	arquivoOrigem := fmt.Sprintf("%s%s", os.Getenv("PATH_FROM"), nomeArquivo)
-	arquivoDestino := fmt.Sprintf("%s%s", os.Getenv("PATH_TO"), nomeArquivo)
+	arquivoDestino := fmt.Sprintf("%s%s", os.Getenv("PATH_TO"), nomeDestino)
 	err := CopyFile(arquivoOrigem, arquivoDestino)
 	if err != nil {
 		panic(err.Error())
@@ -107,7 +107,7 @@ func CopyFile(arquivoOrigem, arquivoDestino string) error {
 func main() {
 	carregarEnv()
 	start := time.Now()
-	dados := pegarTodosTitularContrato()
+	dados := pegarDados()
 	total := len(dados)
 	fmt.Printf("Tempo execução %s , quantidade de registros %d", time.Since(start), total)
 
@@ -116,7 +116,7 @@ func main() {
 		wg.Add(1)
 		go func(dado TitularContrato) {
 			defer wg.Done()
-			copiarArquivo(dado.Imagem)
+			copiarArquivo(dado.Imagem, fmt.Sprintf("%s-%s", dado.Codigo, dado.Imagem))
 		}(dado)
 	}
 	wg.Wait()
